@@ -3,6 +3,15 @@ import json
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth.decorators import permission_required
+
+from wagtail.wagtailadmin.modal_workflow import render_modal_workflow
+from wagtail.wagtailadmin.forms import SearchForm
+from wagtail.wagtailsearch.backends import get_search_backends
+from wagtail.wagtailadmin.utils import PermissionPolicyChecker, popular_tags_for_model
+from wagtail.wagtailcore.models import Collection
+
 from embed_video.backends import detect_backend
 from wagtail.admin.forms import SearchForm
 from wagtail.admin.modal_workflow import render_modal_workflow
@@ -10,6 +19,10 @@ from wagtail.admin.utils import popular_tags_for_model
 from wagtail.utils.pagination import paginate
 
 from wagtail_embed_videos.models import get_embed_video_model
+
+from wagtail_embed_videos.permissions import permission_policy
+
+permission_checker = PermissionPolicyChecker(permission_policy)
 
 
 def get_embed_video_json(embed_video):
@@ -35,25 +48,44 @@ def get_embed_video_json(embed_video):
 def chooser(request):
     EmbedVideo = get_embed_video_model()
 
+    # Get embed_videos files (filtered by user permission)
+    embed_videos = permission_policy.instances_user_has_any_permission_for(
+        request.user, ['change', 'delete']
+    )
+
+
     if request.user.has_perm('wagtail_embed_videos.add_embedvideo'):
         can_add = True
     else:
         can_add = False
 
     q = None
-    embed_videos = EmbedVideo.objects.order_by('-created_at')
-    if 'q' in request.GET or 'p' in request.GET:
+
+    if 'q' in request.GET or 'p' in request.GET or 'collection_id' in request.GET:
+
+        collection_id = request.GET.get('collection_id')
+        if collection_id:
+            media_files = media_files.filter(collection=collection_id)
+
         searchform = SearchForm(request.GET)
+
         if searchform.is_valid():
             q = searchform.cleaned_data['q']
 
-            embed_videos = embed_videos.search(q)
+            # page number
+            p = request.GET.get("p", 1)
+
+            embed_videos = embed_videos.search(q, results_per_page=10, page=p)
 
             is_searching = True
 
         else:
             is_searching = False
             q = None
+
+            embed_videos = embed_viedeos.order_by('-created_at')
+            p = request.GET.get("p", 1)
+            paginator = Paginator(embed_videos, 10)
 
         # Pagination
         paginator, embed_videos = paginate(request, embed_videos, per_page=12)
@@ -69,6 +101,21 @@ def chooser(request):
 
         searchform = SearchForm()
 
+        collections = Collection.objects.all()
+        if len(collections) < 2:
+            collections = None
+
+        embed_videos = embed_videos.order_by('-created_at')
+        p = request.GET.get("p", 1)
+        paginator = Paginator(embed_videos, 10)
+
+        try:
+            embed_videos = paginator.page(p)
+        except PageNotAnInteger:
+            embed_videos = paginator.page(1)
+        except EmptyPage:
+            embed_videos = paginator.page(paginator.num_pages)
+
     return render_modal_workflow(
         request,
         'wagtail_embed_videos/chooser/chooser.html',
@@ -76,6 +123,7 @@ def chooser(request):
         {
             'embed_videos': embed_videos,
             'searchform': searchform,
+            'collections': collections,
             'is_searching': False,
             'can_add': can_add,
             'query_string': q,
