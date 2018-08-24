@@ -23,7 +23,7 @@ from wagtail.images.models import Image as WagtailImage
 from wagtail.images import get_image_model
 from wagtail.search import index
 from wagtail.search.queryset import SearchableQuerySetMixin
-from wagtail.wagtailcore.models import CollectionMember
+from wagtail.core.models import CollectionMember
 
 from embed_video.fields import EmbedVideoField
 from embed_video.backends import detect_backend
