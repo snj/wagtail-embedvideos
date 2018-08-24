@@ -26,116 +26,105 @@ permission_checker = PermissionPolicyChecker(permission_policy)
 
 
 def get_embed_video_json(embed_video):
-    """
-    helper function: given an embed video, return the json to pass back to the
-    embed video chooser panel
-    """
-    if embed_video.thumbnail:
-        preview_embed_video = embed_video.thumbnail.get_rendition('max-130x100').url
-    else:
-        preview_embed_video = detect_backend(embed_video.url).get_thumbnail_url()
+	"""
+	helper function: given an embed video, return the json to pass back to the
+	embed video chooser panel
+	"""
+	if embed_video.thumbnail:
+		preview_embed_video = embed_video.thumbnail.get_rendition('max-130x100').url
+	else:
+		preview_embed_video = detect_backend(embed_video.url).get_thumbnail_url()
 
-    return json.dumps({
-        'id': embed_video.id,
-        'edit_link': reverse('wagtail_embed_videos_edit_embed_video', args=(embed_video.id,)),
-        'title': embed_video.title,
-        'preview': {
-            'url': preview_embed_video,
-        }
-    })
+	return json.dumps({
+		'id': embed_video.id,
+		'edit_link': reverse('wagtail_embed_videos_edit_embed_video', args=(embed_video.id,)),
+		'title': embed_video.title,
+		'preview': {
+			'url': preview_embed_video,
+		}
+	})
 
 
 def chooser(request):
-    EmbedVideo = get_embed_video_model()
+	EmbedVideo = get_embed_video_model()
 
-    # Get embed_videos files (filtered by user permission)
-    embed_videos = permission_policy.instances_user_has_any_permission_for(
-        request.user, ['change', 'delete']
-    )
+	# Get embed_videos files (filtered by user permission)
+	embed_videos = permission_policy.instances_user_has_any_permission_for(
+		request.user, ['change', 'delete']
+	)
 
 
-    if request.user.has_perm('wagtail_embed_videos.add_embedvideo'):
-        can_add = True
-    else:
-        can_add = False
+	if request.user.has_perm('wagtail_embed_videos.add_embedvideo'):
+		can_add = True
+	else:
+		can_add = False
 
-    q = None
+	# page number
+	p = request.GET.get("p", 1)
 
-    if 'q' in request.GET or 'p' in request.GET or 'collection_id' in request.GET:
+	q = None
 
-        collection_id = request.GET.get('collection_id')
-        if collection_id:
-            media_files = media_files.filter(collection=collection_id)
+	if 'q' in request.GET or 'p' in request.GET or 'collection_id' in request.GET:
 
-        searchform = SearchForm(request.GET)
+		collection_id = request.GET.get('collection_id')
+		if collection_id:
+			embed_videos = embed_videos.filter(collection=collection_id)
 
-        if searchform.is_valid():
-            q = searchform.cleaned_data['q']
+		searchform = SearchForm(request.GET)
 
-            # page number
-            p = request.GET.get("p", 1)
+		q = None
+		is_searching = False
 
-            embed_videos = embed_videos.search(q, results_per_page=10, page=p)
+		if searchform.is_valid():
+			q = searchform.cleaned_data['q']
+			is_searching = True
 
-            is_searching = True
+			embed_videos = embed_videos.search(q, results_per_page=10, page=p).order_by('-created_at')
+		else:
+			embed_videos = embed_videos.order_by('-created_at')
 
-        else:
-            is_searching = False
-            q = None
+		# Pagination
+		paginator, embed_videos = paginate(request, embed_videos, per_page=12)
 
-            embed_videos = embed_viedeos.order_by('-created_at')
-            p = request.GET.get("p", 1)
-            paginator = Paginator(embed_videos, 10)
+		return render(request, "wagtail_embed_videos/chooser/results.html", {
+			'embed_videos': embed_videos,
+			'is_searching': is_searching,
+			'can_add': can_add,
+			'query_string': q,
+		})
 
-        # Pagination
-        paginator, embed_videos = paginate(request, embed_videos, per_page=12)
 
-        return render(request, "wagtail_embed_videos/chooser/results.html", {
-            'embed_videos': embed_videos,
-            'is_searching': is_searching,
-            'can_add': can_add,
-            'query_string': q,
-        })
-    else:
-        paginator, embed_videos = paginate(request, embed_videos, per_page=12)
+	searchform = SearchForm()
 
-        searchform = SearchForm()
+	collections = Collection.objects.all()
+	if len(collections) < 2:
+		collections = None
 
-        collections = Collection.objects.all()
-        if len(collections) < 2:
-            collections = None
+	embed_videos = embed_videos.order_by('-created_at')
 
-        embed_videos = embed_videos.order_by('-created_at')
-        p = request.GET.get("p", 1)
-        paginator = Paginator(embed_videos, 10)
+	# Pagination
+	paginator, embed_videos = paginate(request, embed_videos, per_page=12)
 
-        try:
-            embed_videos = paginator.page(p)
-        except PageNotAnInteger:
-            embed_videos = paginator.page(1)
-        except EmptyPage:
-            embed_videos = paginator.page(paginator.num_pages)
-
-    return render_modal_workflow(
-        request,
-        'wagtail_embed_videos/chooser/chooser.html',
-        'wagtail_embed_videos/chooser/chooser.js',
-        {
-            'embed_videos': embed_videos,
-            'searchform': searchform,
-            'collections': collections,
-            'is_searching': False,
-            'can_add': can_add,
-            'query_string': q,
-            'popular_tags': popular_tags_for_model(EmbedVideo),
-        }
-    )
+	return render_modal_workflow(
+		request,
+		'wagtail_embed_videos/chooser/chooser.html',
+		'wagtail_embed_videos/chooser/chooser.js',
+		{
+			'embed_videos': embed_videos,
+			'searchform': searchform,
+			'collections': collections,
+			'is_searching': False,
+			'can_add': can_add,
+			'query_string': q,
+			'popular_tags': popular_tags_for_model(EmbedVideo),
+		}
+	)
 
 
 def embed_video_chosen(request, embed_video_id):
-    embed_video = get_object_or_404(get_embed_video_model(), id=embed_video_id)
+	embed_video = get_object_or_404(get_embed_video_model(), id=embed_video_id)
 
-    return render_modal_workflow(
-        request, None, 'wagtail_embed_videos/chooser/embed_video_chosen.js',
-        {'embed_video_json': get_embed_video_json(embed_video)}
-    )
+	return render_modal_workflow(
+		request, None, 'wagtail_embed_videos/chooser/embed_video_chosen.js',
+		{'embed_video_json': get_embed_video_json(embed_video)}
+	)
