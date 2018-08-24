@@ -10,8 +10,7 @@ import wagtail.wagtailcore.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('wagtailcore', '0040_page_draft_title'),
-        ('wagtail_embed_videos', '0001_initial'),
+        ('wagtail_embed_videos', '0002_auto_20180822_0945'),
     ]
 
     operations = [
