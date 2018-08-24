@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 from wagtail.core.permission_policies.collections import (
     CollectionOwnershipPermissionPolicy
 )
