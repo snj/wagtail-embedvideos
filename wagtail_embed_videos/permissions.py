@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from wagtail.wagtailcore.permission_policies.collections import (
+from wagtail.core.permission_policies.collections import (
     CollectionOwnershipPermissionPolicy
 )
 

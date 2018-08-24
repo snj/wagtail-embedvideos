@@ -6,11 +6,11 @@ from django.urls import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import permission_required
 
-from wagtail.wagtailadmin.modal_workflow import render_modal_workflow
-from wagtail.wagtailadmin.forms import SearchForm
-from wagtail.wagtailsearch.backends import get_search_backends
-from wagtail.wagtailadmin.utils import PermissionPolicyChecker, popular_tags_for_model
-from wagtail.wagtailcore.models import Collection
+from wagtail.admin.modal_workflow import render_modal_workflow
+from wagtail.admin.forms import SearchForm
+from wagtail.search.backends import get_search_backends
+from wagtail.admin.utils import PermissionPolicyChecker, popular_tags_for_model
+from wagtail.core.models import Collection
 
 from embed_video.backends import detect_backend
 from wagtail.admin.forms import SearchForm
