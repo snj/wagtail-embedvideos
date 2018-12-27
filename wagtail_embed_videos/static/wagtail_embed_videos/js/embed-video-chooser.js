@@ -7,8 +7,12 @@ function createEmbedVideoChooser(id) {
     $('.action-choose', chooserElement).click(function() {
         ModalWorkflow({
             'url': window.chooserUrls.embedVideoChooser,
+            'onload': EMBED_VIDEO_CHOOSER_MODAL_ONLOAD_HANDLERS,
             'responses': {
                 'embedVideoChosen': function(embedVideoData) {
+                    if (typeof embedVideoData == 'string') {
+                        embedVideoData = JSON.parse(embedVideoData);
+                    }
                     input.val(embedVideoData.id);
                     previewEmbedVideo.attr({
                         'src': embedVideoData.preview.url,
