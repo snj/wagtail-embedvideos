@@ -1,10 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-try:
-    import urllib2
-except ImportError:
-    import urllib3
 import requests
 
 from taggit.managers import TaggableManager
@@ -67,11 +63,12 @@ def create_thumbnail(model_instance):
                     break
 
     img_temp = NamedTemporaryFile()
-    try:
-        img_temp.write(urllib2.urlopen(thumbnail_url).read())
-    except:
-        http = urllib3.PoolManager()
-        img_temp.write(http.request('GET', thumbnail_url).data, cert_reqs='CERT_NONE', assert_hostname=False)
+    requests.get(thumbnail_url, stream=True, verfy=False)
+    for block in request.iter_content(1024 * 8):
+        if not block:
+            break
+        img_temp.write(block)
+
     img_temp.flush()
 
     image = get_image_model()(title=model_instance.title)
