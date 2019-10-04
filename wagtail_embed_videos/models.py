@@ -71,7 +71,7 @@ def create_thumbnail(model_instance):
         img_temp.write(urllib2.urlopen(thumbnail_url).read())
     except:
         http = urllib3.PoolManager()
-        img_temp.write(http.request('GET', thumbnail_url).data)
+        img_temp.write(http.request('GET', thumbnail_url).data, cert_reqs='CERT_NONE', assert_hostname=False)
     img_temp.flush()
 
     image = get_image_model()(title=model_instance.title)
