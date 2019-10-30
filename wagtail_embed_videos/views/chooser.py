@@ -14,7 +14,10 @@ from wagtail.admin.utils import PermissionPolicyChecker, popular_tags_for_model
 from wagtail.core.models import Collection
 
 from embed_video.backends import detect_backend
-from wagtail.admin.forms import SearchForm
+try:
+    from wagtail.admin.forms import SearchForm
+except ImportError:
+    from wagtail.admin.forms.search import SearchForm
 from wagtail.admin.modal_workflow import render_modal_workflow
 from wagtail.admin.utils import popular_tags_for_model
 from wagtail.utils.pagination import paginate
