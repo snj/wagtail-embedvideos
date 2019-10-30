@@ -63,8 +63,8 @@ def create_thumbnail(model_instance):
                     break
 
     img_temp = NamedTemporaryFile()
-    requests.get(thumbnail_url, stream=True, verfy=False)
-    for block in request.iter_content(1024 * 8):
+    res = requests.get(thumbnail_url, stream=True, verify=False)
+    for block in res.iter_content(1024 * 8):
         if not block:
             break
         img_temp.write(block)
