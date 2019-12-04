@@ -8,9 +8,13 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import permission_required
 
 from wagtail.admin.modal_workflow import render_modal_workflow
-from wagtail.admin.forms import SearchForm
 from wagtail.search.backends import get_search_backends
-from wagtail.admin.utils import PermissionPolicyChecker, popular_tags_for_model
+from wagtail.admin.utils import PermissionPolicyChecker
+
+try:
+    from wagtail.admin.utils import popular_tags_for_model
+except ImportError:
+    from wagtail.admin.models import popular_tags_for_model
 from wagtail.core.models import Collection
 
 from embed_video.backends import detect_backend
@@ -19,8 +23,11 @@ try:
 except ImportError:
     from wagtail.admin.forms.search import SearchForm
 from wagtail.admin.modal_workflow import render_modal_workflow
-from wagtail.admin.utils import popular_tags_for_model
-from wagtail.utils.pagination import paginate
+
+try:
+    from wagtail.utils.pagination import paginate
+except ModuleNotFoundError:
+    from django.core.paginator import Paginator
 
 from wagtail_embed_videos.models import get_embed_video_model
 
@@ -59,6 +66,8 @@ def get_embed_video_json(embed_video):
 
 
 def chooser(request):
+    PER_PAGE = 12
+
     EmbedVideo = get_embed_video_model()
 
     # Get embed_videos files (filtered by user permission)
@@ -92,12 +101,16 @@ def chooser(request):
             q = searchform.cleaned_data['q']
             is_searching = True
 
-            embed_videos = embed_videos.search(q, results_per_page=10, page=p).order_by('-created_at')
+            embed_videos = embed_videos.search(q, results_per_page=PER_PAGE, page=p).order_by('-created_at')
         else:
             embed_videos = embed_videos.order_by('-created_at')
 
         # Pagination
-        paginator, embed_videos = paginate(request, embed_videos, per_page=12)
+        try:
+            paginator, embed_videos = paginate(request, embed_videos, per_page=PER_PAGE)
+        except NameError:
+            paginator = Paginator(embed_videos, per_page=PER_PAGE)
+            embed_videos = paginator.get_page(request.GET.get('p'))
 
         return render(request, "wagtail_embed_videos/chooser/results.html", {
             'embed_videos': embed_videos,
@@ -115,8 +128,11 @@ def chooser(request):
 
     embed_videos = embed_videos.order_by('-created_at')
 
-    # Pagination
-    paginator, embed_videos = paginate(request, embed_videos, per_page=12)
+    try:
+        paginator, embed_videos = paginate(request, embed_videos, per_page=PER_PAGE)
+    except NameError:
+        paginator = Paginator(embed_videos, per_page=PER_PAGE)
+        embed_videos = paginator.get_page(request.GET.get('p'))
 
     return render_modal_workflow(
         request,
