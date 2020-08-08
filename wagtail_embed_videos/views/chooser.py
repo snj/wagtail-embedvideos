@@ -9,7 +9,10 @@ from django.contrib.auth.decorators import permission_required
 
 from wagtail.admin.modal_workflow import render_modal_workflow
 from wagtail.search.backends import get_search_backends
-from wagtail.admin.utils import PermissionPolicyChecker
+try:
+    from wagtail.admin.utils import PermissionPolicyChecker
+except ImportError:
+    from wagtail.admin.auth import PermissionPolicyChecker
 
 try:
     from wagtail.admin.utils import popular_tags_for_model
