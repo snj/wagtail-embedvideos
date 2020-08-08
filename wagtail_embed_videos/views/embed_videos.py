@@ -14,9 +14,15 @@ try:
 except ImportError:
     from wagtail.admin.forms.search import SearchForm
 from wagtail.admin import messages
-from wagtail.admin.utils import (
-    PermissionPolicyChecker, permission_denied, popular_tags_for_model
-)
+try:
+    from wagtail.admin.utils import (
+        PermissionPolicyChecker, permission_denied
+    )
+    from wagtail.admin.models import popular_tags_for_model
+except ImportError:
+    from wagtail.admin.auth import (
+        PermissionPolicyChecker, permission_denied, popular_tags_for_model
+    )
 from wagtail.search.backends import get_search_backends
 
 from wagtail_embed_videos.models import get_embed_video_model
